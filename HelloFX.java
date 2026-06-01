@@ -2,6 +2,7 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -69,11 +70,15 @@ public class HelloFX extends Application {
         pieces.put("bn", "♞");
         pieces.put("bp", "♟");
 
+        Image image = new Image(
+    ""
+        );  
+
         GridPane grid = new GridPane();
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 StackPane tile = new StackPane();
-                Rectangle colour = new Rectangle(80, 80);
+                Rectangle colour = new Rectangle(70, 70);
                 if ((row+col)%2==0) {
                     colour.setFill(Color.WHITE);
                 } else {
