@@ -15,6 +15,7 @@ import javafx.scene.input.MouseButton;
 public class HelloFX extends Application {
 
     static String[][] board = new String[8][8];
+    static StackPane[][] tiles = new StackPane[8][8];
     static HashMap<String, Image> pieces = new HashMap<>();
     static GridPane grid = new GridPane();
     static int selectedRow = -1;
@@ -51,11 +52,31 @@ public class HelloFX extends Application {
                 }
                 tile.getChildren().add(colour);
 
+                final int tileRow = row;
+                final int tileCol = col;
+
+                tile.setOnMouseClicked(event -> {
+                    System.out.println("Clicked: " + tileRow + ", " + tileCol);
+                    if (selectedRow == -1) {
+                    // First click: select piece
+                    selectedRow = tileRow;
+                    selectedCol = tileCol;
+                } else {
+                    // Second click: attempt move
+                    movePiece(selectedRow, selectedCol, tileRow, tileCol);
+
+                    selectedRow = -1;
+                    selectedCol = -1;
+                }
+
+                });
+
                 // Add a piece if there is one
                 String pieceCode = board[col][row];
                 if (!pieceCode.equals("--")) {
 
                     ImageView piece = new ImageView(pieces.get(pieceCode));
+                    piece.setUserData("piece");
 
                     piece.setFitWidth(60);
                     piece.setFitHeight(60);
@@ -63,26 +84,9 @@ public class HelloFX extends Application {
 
                     tile.getChildren().add(piece);
 
-                    final int tileRow = row;
-                    final int tileCol = col;
-
-                    tile.setOnMouseClicked(event -> {
-                        System.out.println("Clicked: " + tileRow + ", " + tileCol);
-                        if (selectedRow == -1) {
-                        // First click: select piece
-                        selectedRow = tileRow;
-                        selectedCol = tileCol;
-                    } else {
-                        // Second click: attempt move
-                        movePiece(selectedRow, selectedCol, tileRow, tileCol);
-
-                        selectedRow = -1;
-                        selectedCol = -1;
-                    }
-
-                    });
                 }
-
+                
+                tiles[row][col] = tile;
                 grid.add(tile, row, col);
             }
         }
@@ -136,7 +140,28 @@ public class HelloFX extends Application {
     }
 
     public static void movePiece(int fromRow, int fromCol, int toRow, int toCol) {
-        int x;
+        String selectedPiece = board[fromRow][fromCol];
+        board[fromRow][fromCol] = board[toRow][toCol];
+        board[toRow][toCol] = selectedPiece;
+        updateSquare(fromRow, fromCol);
+        updateSquare(toRow, toCol);
+
     }
 
+    public static void updateSquare(int row, int col) {
+        StackPane tile = tiles[row][col];
+        String pieceCode = board[row][col];
+        if (!pieceCode.equals("--")) {
+            ImageView piece = new ImageView(pieces.get(pieceCode));
+            piece.setFitWidth(60);
+            piece.setFitHeight(60);
+            piece.setPreserveRatio(true);
+            piece.setUserData("piece");
+            tile.getChildren().add(piece);
+            
+        } else {
+            tile.getChildren().remove(tile.getChildren().size()-1);
+        }
+
+    }
 }
