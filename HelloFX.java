@@ -177,20 +177,85 @@ public class HelloFX extends Application {
     };
 
     public static boolean validateMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
-        if (pieceKey.equals("♙")) {
+        if (isFriendlyPiece(board[fromRow][fromCol], board[toRow][toCol])) {
+            return false;
+        }
+        else if (pieceKey.equals("♙")) {
             return pawnMove(fromRow, fromCol, toRow, toCol, pieceKey);
+        }
+        else if (pieceKey.equals("♘")) {
+            return knightMove(fromRow, fromCol, toRow, toCol);
+        }
+        else if (pieceKey.equals("♗")) {
+            return bishopMove(fromRow, fromCol, toRow, toCol);
+        }
+        else if (pieceKey.equals("♖")) {
+            return rookMove(fromRow, fromCol, toRow, toCol);
+        }
+        else if (pieceKey.equals("♕")) {
+            return rookMove(fromRow, fromCol, toRow, toCol) || bishopMove(fromRow, fromCol, toRow, toCol);
+        } else if (pieceKey.equals("♔")) {
+            return kingMove(fromRow, fromCol, toRow, toCol);
         }
         return false;
     }
 
     public static boolean pawnMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
-        boolean movedForward;
+        int direction;
         if (pieceKey.equals("♙")) {
-            movedForward = toRow == fromRow+1;
+            direction = -1;
+
         } else {
-            movedForward = toRow == fromRow+1;
+            direction = 1;
         }
-        return fromCol == toCol && movedForward;
+
+        if (board[toRow][toCol].equals("--")) {
+            
+            if (toCol == fromCol && ((pieceKey.equals("♙") && fromRow == 6) || (pieceKey.equals("♟") && fromRow == 1)) && toRow == fromRow + 2 * direction && board[(toRow+fromRow)/2][toCol].equals("--")) {
+                return true;
+            } 
+
+            return fromCol == toCol && toRow == fromRow+direction;
+        }
+
+        return Math.abs(fromCol-toCol)==1 && toRow == fromRow+direction;
+    }
+
+    public static boolean knightMove(int fromRow, int fromCol, int toRow, int toCol) {
+        boolean senario1 = Math.abs(fromCol - toCol) == 2 && Math.abs(fromRow - toRow) == 1;
+        boolean senario2 = Math.abs(fromCol - toCol) == 1 && Math.abs(fromRow - toRow) == 2;
+        return senario1 || senario2;
+    }
+
+    public static boolean bishopMove(int fromRow, int fromCol, int toRow, int toCol) {
+        return Math.abs(toCol-fromCol) == Math.abs(toRow-fromRow);
+    }
+
+    public static boolean rookMove(int fromRow, int fromCol, int toRow, int toCol) {
+        return toCol==fromCol || toRow==fromRow;
+    }
+    
+    public static boolean kingMove(int fromRow, int fromCol, int toRow, int toCol) {
+        int colDiff = Math.abs(toCol-fromCol);
+        int rowDiff = Math.abs(toRow-fromRow);
+        return colDiff <= 1 && rowDiff <=1;
+    }
+
+    public static boolean isWhite(String piece) {
+        return "♔♕♖♗♘♙".contains(piece);
+    }
+    public static boolean isBlack(String piece) {
+        return "♚♛♜♝♞♟".contains(piece);
+    }
+
+    public static boolean isFriendlyPiece(String source, String destination) {
+
+        if (destination.equals("--")) {
+            return false;
+        }
+
+        return (isWhite(source) && isWhite(destination))
+            || (isBlack(source) && isBlack(destination));
     }
     
 }
