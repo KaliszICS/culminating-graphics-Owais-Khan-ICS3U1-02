@@ -228,11 +228,11 @@ public class HelloFX extends Application {
     }
 
     public static boolean bishopMove(int fromRow, int fromCol, int toRow, int toCol) {
-        return Math.abs(toCol-fromCol) == Math.abs(toRow-fromRow);
+        return Math.abs(toCol-fromCol) == Math.abs(toRow-fromRow) && noPiecesDiagonal(fromCol, toCol, toRow, fromRow);
     }
 
     public static boolean rookMove(int fromRow, int fromCol, int toRow, int toCol) {
-        return toCol==fromCol || toRow==fromRow;
+        return (toCol==fromCol && noPiecesHorizontal(fromCol, toRow, fromRow) || toRow==fromRow && noPiecesVertical(fromRow, toCol, fromCol));
     }
     
     public static boolean kingMove(int fromRow, int fromCol, int toRow, int toCol) {
@@ -257,5 +257,55 @@ public class HelloFX extends Application {
         return (isWhite(source) && isWhite(destination))
             || (isBlack(source) && isBlack(destination));
     }
+
+    public static boolean noPiecesVertical(int fromRow, int toCol, int fromCol) {
+        int start = Math.min(fromCol, toCol);
+        int end = Math.max(fromCol, toCol);
+
+        for (int col = start+1; col < end; col++) {
+            if (!board[fromRow][col].equals("--")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean noPiecesHorizontal(int fromCol, int toRow, int fromRow) {
+        int start = Math.min(fromRow, toRow);
+        int end = Math.max(fromRow, toRow);
+
+        for (int row = start+1; row < end; row++) {
+            if (!board[row][fromCol].equals("--")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean noPiecesDiagonal(int fromCol, int toCol, int toRow, int fromRow) {
+        int rowDiff = toRow-fromRow;
+        int colDiff = toCol-fromCol;
+        int rowStep = 1;
+        int colStep = 1;
+        if (rowDiff > 0) {
+            rowStep = -1;
+        } 
+        if (colDiff > 0) {
+            colStep = -1;
+        }
+
+        fromRow += rowStep;
+        fromCol += colStep;
+
+        while (fromCol != toCol-colStep) {
+            if (!board[fromRow][fromCol].equals("--")) {
+                return false;
+            }
+            fromCol += colStep;
+            fromRow += rowStep;
+        }
+        return true;
+    }
+
     
 }
