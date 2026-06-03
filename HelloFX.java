@@ -20,6 +20,7 @@ public class HelloFX extends Application {
     static GridPane grid = new GridPane();
     static int selectedRow = -1;
     static int selectedCol = -1;
+    static boolean whiteTurn = true;
 
 
     @Override
@@ -146,6 +147,7 @@ public class HelloFX extends Application {
             updateSquares(fromRow, fromCol, toRow, toCol, pieceKey);
             board[toRow][toCol] = board[fromRow][fromCol];
             board[fromRow][fromCol] = "--";
+            whiteTurn = !whiteTurn;
         }
     }
 
@@ -177,24 +179,26 @@ public class HelloFX extends Application {
     };
 
     public static boolean validateMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
-        if (isFriendlyPiece(board[fromRow][fromCol], board[toRow][toCol])) {
+        if (isFriendlyPiece(board[fromRow][fromCol], board[toRow][toCol])
+            || whiteTurn && !isWhite(pieceKey)
+            || !whiteTurn && !isBlack(pieceKey)){
             return false;
         }
-        else if (pieceKey.equals("♙")) {
+        else if (pieceKey.equals("♙") || pieceKey.equals("♟")) {
             return pawnMove(fromRow, fromCol, toRow, toCol, pieceKey);
         }
-        else if (pieceKey.equals("♘")) {
+        else if (pieceKey.equals("♘") || pieceKey.equals("♞")) {
             return knightMove(fromRow, fromCol, toRow, toCol);
         }
-        else if (pieceKey.equals("♗")) {
+        else if (pieceKey.equals("♗") || pieceKey.equals("♝")) {
             return bishopMove(fromRow, fromCol, toRow, toCol);
         }
-        else if (pieceKey.equals("♖")) {
+        else if (pieceKey.equals("♖") || pieceKey.equals("♜")) {
             return rookMove(fromRow, fromCol, toRow, toCol);
         }
-        else if (pieceKey.equals("♕")) {
+        else if (pieceKey.equals("♕") || pieceKey.equals("♛")) {
             return rookMove(fromRow, fromCol, toRow, toCol) || bishopMove(fromRow, fromCol, toRow, toCol);
-        } else if (pieceKey.equals("♔")) {
+        } else if (pieceKey.equals("♔") || pieceKey.equals("♚")) {
             return kingMove(fromRow, fromCol, toRow, toCol);
         }
         return false;
@@ -287,17 +291,17 @@ public class HelloFX extends Application {
         int colDiff = toCol-fromCol;
         int rowStep = 1;
         int colStep = 1;
-        if (rowDiff > 0) {
+        if (rowDiff < 0) {
             rowStep = -1;
         } 
-        if (colDiff > 0) {
+        if (colDiff < 0) {
             colStep = -1;
         }
 
         fromRow += rowStep;
         fromCol += colStep;
 
-        while (fromCol != toCol-colStep) {
+        while (fromRow != toRow && fromCol != toCol) {
             if (!board[fromRow][fromCol].equals("--")) {
                 return false;
             }
