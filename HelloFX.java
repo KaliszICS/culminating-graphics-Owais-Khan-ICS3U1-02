@@ -56,12 +56,13 @@ public class HelloFX extends Application {
                 final int tileCol = col;
 
                 tile.setOnMouseClicked(event -> {
-                    System.out.println("Clicked: " + tileRow + ", " + tileCol);
-                    if (selectedRow == -1) {
+                System.out.println("Clicked: " + tileRow + ", " + tileCol);
+                if (selectedRow == -1 && !board[tileRow][tileCol].equals("--")) {
                     // First click: select piece
                     selectedRow = tileRow;
                     selectedCol = tileCol;
-                } else {
+             
+                } else if (selectedRow != -1) {
                     // Second click: attempt move
                     movePiece(selectedRow, selectedCol, tileRow, tileCol);
 
@@ -72,7 +73,7 @@ public class HelloFX extends Application {
                 });
 
                 // Add a piece if there is one
-                String pieceCode = board[col][row];
+                String pieceCode = board[row][col];
                 if (!pieceCode.equals("--")) {
 
                     ImageView piece = new ImageView(pieces.get(pieceCode));
@@ -87,7 +88,7 @@ public class HelloFX extends Application {
                 }
                 
                 tiles[row][col] = tile;
-                grid.add(tile, row, col);
+                grid.add(tile, col, row);
             }
         }
         Scene scene = new Scene(grid);
@@ -140,28 +141,56 @@ public class HelloFX extends Application {
     }
 
     public static void movePiece(int fromRow, int fromCol, int toRow, int toCol) {
-        String selectedPiece = board[fromRow][fromCol];
-        board[fromRow][fromCol] = board[toRow][toCol];
-        board[toRow][toCol] = selectedPiece;
-        updateSquare(fromRow, fromCol);
-        updateSquare(toRow, toCol);
-
+        String pieceKey = board[fromRow][fromCol];
+        if (validateMove(fromRow, fromCol, toRow, toCol, pieceKey)) {
+            updateSquares(fromRow, fromCol, toRow, toCol, pieceKey);
+            board[toRow][toCol] = board[fromRow][fromCol];
+            board[fromRow][fromCol] = "--";
+        }
     }
 
-    public static void updateSquare(int row, int col) {
-        StackPane tile = tiles[row][col];
-        String pieceCode = board[row][col];
-        if (!pieceCode.equals("--")) {
-            ImageView piece = new ImageView(pieces.get(pieceCode));
-            piece.setFitWidth(60);
-            piece.setFitHeight(60);
-            piece.setPreserveRatio(true);
-            piece.setUserData("piece");
-            tile.getChildren().add(piece);
-            
-        } else {
-            tile.getChildren().remove(tile.getChildren().size()-1);
+    public static void updateSquares(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
+        StackPane startTile = tiles[fromRow][fromCol];
+        StackPane endTile = tiles[toRow][toCol];
+
+        String destination = board[toRow][toCol];
+
+        ImageView piece = new ImageView(pieces.get(pieceKey));
+        piece.setFitWidth(60);
+        piece.setFitHeight(60);
+        piece.setPreserveRatio(true);
+
+        // remove moving piece from start (UI)
+        if (!startTile.getChildren().isEmpty()) {
+            startTile.getChildren().remove(startTile.getChildren().size() - 1);
         }
 
+        // capture handling (UI)
+        if (destination != null && !destination.equals("--")) {
+            if (!endTile.getChildren().isEmpty()) {
+                endTile.getChildren().remove(endTile.getChildren().size() - 1);
+            }
+        }
+
+        // place piece
+        endTile.getChildren().add(piece);
+    };
+
+    public static boolean validateMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
+        if (pieceKey.equals("♙")) {
+            return pawnMove(fromRow, fromCol, toRow, toCol, pieceKey);
+        }
+        return false;
     }
+
+    public static boolean pawnMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
+        boolean movedForward;
+        if (pieceKey.equals("♙")) {
+            movedForward = toRow == fromRow+1;
+        } else {
+            movedForward = toRow == fromRow+1;
+        }
+        return fromCol == toCol && movedForward;
+    }
+    
 }
