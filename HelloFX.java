@@ -58,17 +58,31 @@ public class HelloFX extends Application {
 
                 tile.setOnMouseClicked(event -> {
                 System.out.println("Clicked: " + tileRow + ", " + tileCol);
-                if (selectedRow == -1 && !board[tileRow][tileCol].equals("--")) {
+                if (selectedRow == -1 && !board[tileRow][tileCol].equals("--")
+                    && (whiteTurn && isWhite(board[tileRow][tileCol])
+                    || !whiteTurn && isBlack(board[tileRow][tileCol]))) {
                     // First click: select piece
                     selectedRow = tileRow;
                     selectedCol = tileCol;
+                    Rectangle rect = (Rectangle) tile.getChildren().get(0);
+                    rect.setFill(Color.LIGHTBLUE);
              
                 } else if (selectedRow != -1) {
                     // Second click: attempt move
                     movePiece(selectedRow, selectedCol, tileRow, tileCol);
 
+                    StackPane selectedTile = tiles[selectedRow][selectedCol];
+                    Rectangle rect = (Rectangle) selectedTile.getChildren().get(0);
+                    if ((selectedRow+selectedCol)%2==0) {
+                        rect.setFill(Color.BEIGE);
+                    } else {
+                        rect.setFill(Color.SADDLEBROWN); 
+                    }
+                    
+
                     selectedRow = -1;
                     selectedCol = -1;
+
                 }
 
                 });
@@ -179,9 +193,7 @@ public class HelloFX extends Application {
     };
 
     public static boolean validateMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
-        if (isFriendlyPiece(board[fromRow][fromCol], board[toRow][toCol])
-            || whiteTurn && !isWhite(pieceKey)
-            || !whiteTurn && !isBlack(pieceKey)){
+        if (isFriendlyPiece(board[fromRow][fromCol], board[toRow][toCol])){
             return false;
         }
         else if (pieceKey.equals("♙") || pieceKey.equals("♟")) {
