@@ -21,6 +21,10 @@ public class HelloFX extends Application {
     static int selectedRow = -1;
     static int selectedCol = -1;
     static boolean whiteTurn = true;
+    static int whiteKingRow = 0;
+    static int blackKingRow = 7;
+    static int whiteKingCol = 4;
+    static int blackKingCol = 4;
 
 
     @Override
@@ -321,6 +325,10 @@ public class HelloFX extends Application {
             fromRow += rowStep;
         }
         return true;
+    }
+
+    public static boolean kingInCheck() {
+        ;
     }
 
     
