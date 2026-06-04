@@ -21,10 +21,24 @@ public class HelloFX extends Application {
     static int selectedRow = -1;
     static int selectedCol = -1;
     static boolean whiteTurn = true;
-    static int whiteKingRow = 0;
-    static int blackKingRow = 7;
+    static int whiteKingRow = 7;
+    static int blackKingRow = 0;
     static int whiteKingCol = 4;
     static int blackKingCol = 4;
+    static boolean whiteInCheck = false;
+    static boolean blackInCheck = false; 
+
+    static int[][] directions = {
+        {-1, 0}, // up
+        { 1, 0}, // down
+        { 0,-1}, // left
+        { 0, 1}, // right
+
+        {-1,-1}, // up-left
+        {-1, 1}, // up-right
+        { 1,-1}, // down-left
+        { 1, 1}  // down-right
+    };
 
 
     @Override
@@ -161,11 +175,19 @@ public class HelloFX extends Application {
 
     public static void movePiece(int fromRow, int fromCol, int toRow, int toCol) {
         String pieceKey = board[fromRow][fromCol];
-        if (validateMove(fromRow, fromCol, toRow, toCol, pieceKey)) {
+        if (validateMove(fromRow, fromCol, toRow, toCol, pieceKey) && !putsOwnKingInCheck()) {
             updateSquares(fromRow, fromCol, toRow, toCol, pieceKey);
             board[toRow][toCol] = board[fromRow][fromCol];
             board[fromRow][fromCol] = "--";
             whiteTurn = !whiteTurn;
+
+            if (pieceKey.equals("♔")) {
+                whiteKingRow = toRow;
+                whiteKingCol = toCol;
+            } else if (pieceKey.equals("♚")) {
+                blackKingRow = toRow;
+                blackKingCol = toCol;
+            }
         }
     }
 
@@ -217,7 +239,15 @@ public class HelloFX extends Application {
         } else if (pieceKey.equals("♔") || pieceKey.equals("♚")) {
             return kingMove(fromRow, fromCol, toRow, toCol);
         }
+
         return false;
+    }
+
+    public static boolean putsOwnKingInCheck() {
+        if (whiteTurn) {
+            return kingInCheck(whiteKingRow, whiteKingCol);
+        } 
+        return kingInCheck(blackKingRow, blackKingCol);
     }
 
     public static boolean pawnMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
@@ -327,8 +357,27 @@ public class HelloFX extends Application {
         return true;
     }
 
-    public static boolean kingInCheck() {
-        ;
+    public static boolean kingInCheck(int kingRow, int kingCol) {
+        for (int[] dir : directions) {
+
+            int row = kingRow + dir[0];
+            int col = kingCol + dir[1];
+
+            while (row >= 0 && row < 8 && col >= 0 && col < 8 && board[row][col].equals("--")) {
+                row += dir[0];
+                col += dir[1];
+            }
+
+            if (row >= 0 && row < 8 &&
+                col >= 0 && col < 8) {
+                String piece = board[row][col];
+                if (validateMove(row, col, kingRow, kingCol, piece) && !isFriendlyPiece(piece, board[kingRow][kingCol])) {
+                    System.out.println("KIGN IN CGEKC KING IS IN CHEKK!!!!!");
+                    return true;
+                };
+            }
+        }
+        return false;
     }
 
     
