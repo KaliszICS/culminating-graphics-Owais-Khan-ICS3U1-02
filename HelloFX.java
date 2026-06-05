@@ -14,13 +14,18 @@ import javafx.scene.input.MouseButton;
 
 public class HelloFX extends Application {
 
-    static String[][] board = new String[8][8];
-    static StackPane[][] tiles = new StackPane[8][8];
+    static String[][] board = new String[8][8];  // Acsii board to keep track of game logic
+    static StackPane[][] tiles = new StackPane[8][8];  // Easy access to specific tiles
     static HashMap<String, Image> pieces = new HashMap<>();
-    static GridPane grid = new GridPane();
+    static GridPane grid = new GridPane();  // UI board
+
+    // Pos of selected piece
     static int selectedRow = -1;
     static int selectedCol = -1;
+
     static boolean whiteTurn = true;
+
+    // Keep track of kings positions for checking logic
     static int whiteKingRow = 7;
     static int blackKingRow = 0;
     static int whiteKingCol = 4;
@@ -28,6 +33,7 @@ public class HelloFX extends Application {
     static boolean whiteInCheck = false;
     static boolean blackInCheck = false; 
 
+    // Directions of the king to check for checks
     static int[][] directions = {
         {-1, 0}, // up
         { 1, 0}, // down
@@ -46,6 +52,7 @@ public class HelloFX extends Application {
 
         boardSetup();
 
+        // White pieces
         pieces.put("♔", new Image(getClass().getResourceAsStream("/icons/white-king.png")));
         pieces.put("♕", new Image(getClass().getResourceAsStream("/icons/white-queen.png")));
         pieces.put("♖", new Image(getClass().getResourceAsStream("/icons/white-rook.png")));
@@ -53,6 +60,7 @@ public class HelloFX extends Application {
         pieces.put("♘", new Image(getClass().getResourceAsStream("/icons/white-knight.png")));
         pieces.put("♙", new Image(getClass().getResourceAsStream("/icons/white-pawn.png")));
 
+        // Black pieces
         pieces.put("♚", new Image(getClass().getResourceAsStream("/icons/black-king.png")));
         pieces.put("♛", new Image(getClass().getResourceAsStream("/icons/black-queen.png")));
         pieces.put("♜", new Image(getClass().getResourceAsStream("/icons/black-rook.png")));
@@ -60,10 +68,13 @@ public class HelloFX extends Application {
         pieces.put("♞", new Image(getClass().getResourceAsStream("/icons/black-knight.png")));
         pieces.put("♟", new Image(getClass().getResourceAsStream("/icons/black-pawn.png")));
 
+        // Setup UI board
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 StackPane tile = new StackPane();
                 Rectangle colour = new Rectangle(70, 70);
+
+                // Checker pattern
                 if ((row+col)%2==0) {
                     colour.setFill(Color.BEIGE);
                 } else {
@@ -71,33 +82,37 @@ public class HelloFX extends Application {
                 }
                 tile.getChildren().add(colour);
 
-                final int tileRow = row;
+                final int tileRow = row;    
                 final int tileCol = col;
-
                 tile.setOnMouseClicked(event -> {
                 System.out.println("Clicked: " + tileRow + ", " + tileCol);
+
+                // Piece selection logic
                 if (selectedRow == -1 && !board[tileRow][tileCol].equals("--")
                     && (whiteTurn && isWhite(board[tileRow][tileCol])
                     || !whiteTurn && isBlack(board[tileRow][tileCol]))) {
+
                     // First click: select piece
                     selectedRow = tileRow;
                     selectedCol = tileCol;
                     Rectangle rect = (Rectangle) tile.getChildren().get(0);
-                    rect.setFill(Color.LIGHTBLUE);
+                    rect.setFill(Color.LIGHTBLUE);  // Indication of selected tile
              
                 } else if (selectedRow != -1) {
+
                     // Second click: attempt move
                     movePiece(selectedRow, selectedCol, tileRow, tileCol);
-
                     StackPane selectedTile = tiles[selectedRow][selectedCol];
                     Rectangle rect = (Rectangle) selectedTile.getChildren().get(0);
+
+                    // Remove indication of selected tile
                     if ((selectedRow+selectedCol)%2==0) {
                         rect.setFill(Color.BEIGE);
                     } else {
                         rect.setFill(Color.SADDLEBROWN); 
                     }
                     
-
+                    // Unselect piece
                     selectedRow = -1;
                     selectedCol = -1;
 
@@ -111,11 +126,9 @@ public class HelloFX extends Application {
 
                     ImageView piece = new ImageView(pieces.get(pieceCode));
                     piece.setUserData("piece");
-
                     piece.setFitWidth(60);
                     piece.setFitHeight(60);
                     piece.setPreserveRatio(true);
-
                     tile.getChildren().add(piece);
 
                 }
@@ -175,12 +188,18 @@ public class HelloFX extends Application {
 
     public static void movePiece(int fromRow, int fromCol, int toRow, int toCol) {
         String pieceKey = board[fromRow][fromCol];
-        if (validateMove(fromRow, fromCol, toRow, toCol, pieceKey) && !putsOwnKingInCheck()) {
+
+        if (validateMove(fromRow, fromCol, toRow, toCol, pieceKey) 
+            && !putsOwnKingInCheck(fromRow, fromCol, toRow, toCol)) {
+
+            // Move the piece in the ascii board (logic)
             updateSquares(fromRow, fromCol, toRow, toCol, pieceKey);
             board[toRow][toCol] = board[fromRow][fromCol];
             board[fromRow][fromCol] = "--";
-            whiteTurn = !whiteTurn;
 
+            whiteTurn = !whiteTurn;
+            
+            // Keep track of king positions
             if (pieceKey.equals("♔")) {
                 whiteKingRow = toRow;
                 whiteKingCol = toCol;
@@ -192,9 +211,9 @@ public class HelloFX extends Application {
     }
 
     public static void updateSquares(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
+        
         StackPane startTile = tiles[fromRow][fromCol];
         StackPane endTile = tiles[toRow][toCol];
-
         String destination = board[toRow][toCol];
 
         ImageView piece = new ImageView(pieces.get(pieceKey));
@@ -207,7 +226,7 @@ public class HelloFX extends Application {
             startTile.getChildren().remove(startTile.getChildren().size() - 1);
         }
 
-        // capture handling (UI)
+        // Check if the landing square contains an enemy piece
         if (destination != null && !destination.equals("--")) {
             if (!endTile.getChildren().isEmpty()) {
                 endTile.getChildren().remove(endTile.getChildren().size() - 1);
@@ -243,11 +262,27 @@ public class HelloFX extends Application {
         return false;
     }
 
-    public static boolean putsOwnKingInCheck() {
+    public static boolean putsOwnKingInCheck(int fromRow, int fromCol, int toRow, int toCol) {
+        String movingPiece = board[fromRow][fromCol];
+        String capturedPiece = board[toRow][toCol];
+
+        // temporary move
+        board[toRow][toCol] = movingPiece;
+        board[fromRow][fromCol] = "--";
+
+        boolean inCheck;
+
         if (whiteTurn) {
-            return kingInCheck(whiteKingRow, whiteKingCol);
-        } 
-        return kingInCheck(blackKingRow, blackKingCol);
+            inCheck = kingInCheck(whiteKingRow, whiteKingCol);
+        } else {
+            inCheck = kingInCheck(blackKingRow, blackKingCol);
+        }
+
+        // undo move
+        board[fromRow][fromCol] = movingPiece;
+        board[toRow][toCol] = capturedPiece;
+
+        return inCheck;
     }
 
     public static boolean pawnMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
@@ -261,14 +296,18 @@ public class HelloFX extends Application {
 
         if (board[toRow][toCol].equals("--")) {
             
-            if (toCol == fromCol && ((pieceKey.equals("♙") && fromRow == 6) || (pieceKey.equals("♟") && fromRow == 1)) && toRow == fromRow + 2 * direction && board[(toRow+fromRow)/2][toCol].equals("--")) {
+            // Allow pawns to move 2 square for their first move, checking if there are any pieces in between 
+            if (toCol == fromCol && ((pieceKey.equals("♙") && fromRow == 6) 
+                || (pieceKey.equals("♟") && fromRow == 1)) 
+                && toRow == fromRow + 2 * direction 
+                && board[(toRow+fromRow)/2][toCol].equals("--")) {
                 return true;
             } 
 
             return fromCol == toCol && toRow == fromRow+direction;
         }
 
-        return Math.abs(fromCol-toCol)==1 && toRow == fromRow+direction;
+        return Math.abs(fromCol-toCol)==1 && toRow == fromRow+direction;  // Diagonal capture
     }
 
     public static boolean knightMove(int fromRow, int fromCol, int toRow, int toCol) {
@@ -358,21 +397,26 @@ public class HelloFX extends Application {
     }
 
     public static boolean kingInCheck(int kingRow, int kingCol) {
+
         for (int[] dir : directions) {
 
             int row = kingRow + dir[0];
             int col = kingCol + dir[1];
 
+            // Check if there is a piece in the direction being checked
             while (row >= 0 && row < 8 && col >= 0 && col < 8 && board[row][col].equals("--")) {
                 row += dir[0];
                 col += dir[1];
             }
 
+            // Confrim that a peice was found and that the iteration did not go out of bounds
             if (row >= 0 && row < 8 &&
                 col >= 0 && col < 8) {
                 String piece = board[row][col];
+
+                // Check if the piece can capture the king
                 if (validateMove(row, col, kingRow, kingCol, piece) && !isFriendlyPiece(piece, board[kingRow][kingCol])) {
-                    System.out.println("KIGN IN CGEKC KING IS IN CHEKK!!!!!");
+                    System.out.println("King is in chekc king is  in  chejck");
                     return true;
                 };
             }
