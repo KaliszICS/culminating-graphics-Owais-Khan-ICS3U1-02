@@ -11,6 +11,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import java.util.HashMap;
 import javafx.scene.input.MouseButton;
+import java.util.ArrayList;
 
 public class HelloFX extends Application {
 
@@ -45,6 +46,12 @@ public class HelloFX extends Application {
         { 1,-1}, // down-left
         { 1, 1}  // down-right
     };
+
+    static String attacker;
+    static int[] attackerDir;
+    static int attackerRow;
+    static int attackerCol;
+    static boolean additionalAttackers;
 
 
     @Override
@@ -206,6 +213,12 @@ public class HelloFX extends Application {
             } else if (pieceKey.equals("♚")) {
                 blackKingRow = toRow;
                 blackKingCol = toCol;
+            }
+
+            if (whiteTurn) {
+                System.out.println(kingInCheckmateOrStalemate(whiteKingRow, whiteKingCol));
+            } else {
+                System.out.println(kingInCheckmateOrStalemate(blackKingRow, blackKingCol));
             }
         }
     }
@@ -416,7 +429,11 @@ public class HelloFX extends Application {
     }
 
     public static boolean kingInCheck(int kingRow, int kingCol) {
+        findAttackers(kingRow, kingCol);
+        return !attacker.isEmpty();
+    }
 
+    public static String findAttackers(int kingRow, int kingCol) {
         for (int[] dir : directions) {
 
             int row = kingRow + dir[0];
@@ -436,12 +453,54 @@ public class HelloFX extends Application {
                 // Check if the piece can capture the king
                 if (validateMove(row, col, kingRow, kingCol, piece) && !isFriendlyPiece(piece, board[kingRow][kingCol])) {
                     System.out.println("King is in chekc king is  in  chejck");
-                    return true;
+                    
+                    if (!attacker.isEmpty()) {
+                        additionalAttackers = true;
+                    }
+                    attacker = piece;
+                    attackerRow = row;
+                    attackerCol = col;
+                    attackerDir = dir;
+
+
                 };
             }
         }
+        return attacker;
+    }
+    
+    public static boolean repelAttack(int kingRow, int kingCol) {
+        int row = kingRow+attackerDir[0];
+        int col = kingCol+attackerDir[1];
+        while (row != attackerRow) {
+            row = kingRow+attackerDir[0];
+            col = kingCol+attackerDir[1];
+            return kingInCheck(row, col);
+        }
         return false;
+
     }
 
+    public static String kingInCheckmateOrStalemate(int kingRow, int kingCol) {
+        for (int[] dir : directions) {
+
+            int row = kingRow + dir[0];
+            int col = kingCol + dir[1];
+            boolean withinBoard = row >= 0 && row < 8 && col >= 0 && col < 8;
+
+            if (withinBoard && validateMove(kingRow, kingCol, row, col, board[row][col])) {
+                return "False";
+            }
+        } 
+
+        if (kingInCheck(kingRow, kingCol) || additionalAttackers) {
+            return "Checkmate";
+        }
+        return "Stalemate";
     
-}
+    }   
+
+    public static boolean insufficientMaterial() {
+        return false;
+    }
+} 
