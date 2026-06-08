@@ -263,12 +263,26 @@ public class HelloFX extends Application {
     }
 
     public static boolean putsOwnKingInCheck(int fromRow, int fromCol, int toRow, int toCol) {
+
         String movingPiece = board[fromRow][fromCol];
         String capturedPiece = board[toRow][toCol];
+
+        int oldWhiteRow = whiteKingRow;
+        int oldWhiteCol = whiteKingCol;
+        int oldBlackRow = blackKingRow;
+        int oldBlackCol = blackKingCol;
 
         // temporary move
         board[toRow][toCol] = movingPiece;
         board[fromRow][fromCol] = "--";
+
+        if (movingPiece.equals("♔")) {
+            whiteKingRow = toRow;
+            whiteKingCol = toCol;
+        } else if (movingPiece.equals("♚")) {
+            blackKingRow = toRow;
+            blackKingCol = toCol;
+        }
 
         boolean inCheck;
 
@@ -281,6 +295,11 @@ public class HelloFX extends Application {
         // undo move
         board[fromRow][fromCol] = movingPiece;
         board[toRow][toCol] = capturedPiece;
+
+        whiteKingRow = oldWhiteRow;
+        whiteKingCol = oldWhiteCol;
+        blackKingRow = oldBlackRow;
+        blackKingCol = oldBlackCol;
 
         return inCheck;
     }
