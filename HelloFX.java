@@ -12,6 +12,7 @@ import javafx.stage.Stage;
 import java.util.HashMap;
 import javafx.scene.input.MouseButton;
 import java.util.ArrayList;
+import javafx.scene.layout.VBox;
 
 public class HelloFX extends Application {
 
@@ -19,8 +20,9 @@ public class HelloFX extends Application {
     static StackPane[][] tiles = new StackPane[8][8];  // Easy access to specific tiles
     static HashMap<String, Image> pieces = new HashMap<>();
     static GridPane grid = new GridPane();  // UI board
+    static Label statusLabel;
 
-    // Pos of selected piece
+    // Position of selected piece
     static int selectedRow = -1;
     static int selectedCol = -1;
 
@@ -47,12 +49,23 @@ public class HelloFX extends Application {
         { 1, 1}  // down-right
     };
 
-    static String attacker;
-    static int[] attackerDir;
-    static int attackerRow;
-    static int attackerCol;
-    static boolean additionalAttackers;
+    static int[][] knightDirections = {
+        {2, 1},
+        {2, -1},
+        {-2, 1},
+        {-2, -1},
+        {1, 2},
+        {1, -1},
+        {-1, 2},
+        {-1, -2}
+    };
 
+
+    static String attacker = "";
+    static int[] attackerDir = null;
+    static int attackerRow = -1;
+    static int attackerCol = -1;
+    static boolean additionalAttackers = false;
 
     @Override
     public void start(Stage stage) {
@@ -60,20 +73,20 @@ public class HelloFX extends Application {
         boardSetup();
 
         // White pieces
-        pieces.put("♔", new Image(getClass().getResourceAsStream("/icons/white-king.png")));
-        pieces.put("♕", new Image(getClass().getResourceAsStream("/icons/white-queen.png")));
-        pieces.put("♖", new Image(getClass().getResourceAsStream("/icons/white-rook.png")));
-        pieces.put("♗", new Image(getClass().getResourceAsStream("/icons/white-bishop.png")));
-        pieces.put("♘", new Image(getClass().getResourceAsStream("/icons/white-knight.png")));
-        pieces.put("♙", new Image(getClass().getResourceAsStream("/icons/white-pawn.png")));
+        pieces.put("whiteKing", new Image(getClass().getResourceAsStream("/icons/white-king.png")));
+        pieces.put("whiteQueen", new Image(getClass().getResourceAsStream("/icons/white-queen.png")));
+        pieces.put("whiteRook", new Image(getClass().getResourceAsStream("/icons/white-rook.png")));
+        pieces.put("whiteBishop", new Image(getClass().getResourceAsStream("/icons/white-bishop.png")));
+        pieces.put("whiteKnight", new Image(getClass().getResourceAsStream("/icons/white-knight.png")));
+        pieces.put("whitePawn", new Image(getClass().getResourceAsStream("/icons/white-pawn.png")));
 
         // Black pieces
-        pieces.put("♚", new Image(getClass().getResourceAsStream("/icons/black-king.png")));
-        pieces.put("♛", new Image(getClass().getResourceAsStream("/icons/black-queen.png")));
-        pieces.put("♜", new Image(getClass().getResourceAsStream("/icons/black-rook.png")));
-        pieces.put("♝", new Image(getClass().getResourceAsStream("/icons/black-bishop.png")));
-        pieces.put("♞", new Image(getClass().getResourceAsStream("/icons/black-knight.png")));
-        pieces.put("♟", new Image(getClass().getResourceAsStream("/icons/black-pawn.png")));
+        pieces.put("blackKing", new Image(getClass().getResourceAsStream("/icons/black-king.png")));
+        pieces.put("blackQueen", new Image(getClass().getResourceAsStream("/icons/black-queen.png")));
+        pieces.put("blackRook", new Image(getClass().getResourceAsStream("/icons/black-rook.png")));
+        pieces.put("blackBishop", new Image(getClass().getResourceAsStream("/icons/black-bishop.png")));
+        pieces.put("blackKnight", new Image(getClass().getResourceAsStream("/icons/black-knight.png")));
+        pieces.put("blackPawn", new Image(getClass().getResourceAsStream("/icons/black-pawn.png")));
 
         // Setup UI board
         for (int row = 0; row < 8; row++) {
@@ -144,7 +157,12 @@ public class HelloFX extends Application {
                 grid.add(tile, col, row);
             }
         }
-        Scene scene = new Scene(grid);
+        statusLabel = new Label("White to move");
+
+        VBox root = new VBox();
+        root.getChildren().addAll(statusLabel, grid);
+
+        Scene scene = new Scene(root);
         stage.setScene(scene);
         stage.show();
     }
@@ -155,18 +173,18 @@ public class HelloFX extends Application {
 
     public static void boardSetup() {
         // Black pieces
-        board[0][0] = "♜";
-        board[0][1] = "♞";
-        board[0][2] = "♝";
-        board[0][3] = "♛";
-        board[0][4] = "♚";
-        board[0][5] = "♝";
-        board[0][6] = "♞";
-        board[0][7] = "♜";
+        board[0][0] = "blackRook";
+        board[0][1] = "blackKnight";
+        board[0][2] = "blackBishop";
+        board[0][3] = "blackQueen";
+        board[0][4] = "blackKing";
+        board[0][5] = "blackBishop";
+        board[0][6] = "blackKnight";
+        board[0][7] = "blackRook";
 
         // Black pawns
         for (int i = 0; i < 8; i++) {
-            board[1][i] = "♟";
+            board[1][i] = "blackPawn";
         }
 
         // Empty squares
@@ -178,18 +196,18 @@ public class HelloFX extends Application {
 
         // White pawns
         for (int i = 0; i < 8; i++) {
-            board[6][i] = "♙";
+            board[6][i] = "whitePawn";
         }
 
         // White pieces
-        board[7][0] = "♖";
-        board[7][1] = "♘";
-        board[7][2] = "♗";
-        board[7][3] = "♕";
-        board[7][4] = "♔";
-        board[7][5] = "♗";
-        board[7][6] = "♘";
-        board[7][7] = "♖";
+        board[7][0] = "whiteRook";
+        board[7][1] = "whiteKnight";
+        board[7][2] = "whiteBishop";
+        board[7][3] = "whiteQueen";
+        board[7][4] = "whiteKing";
+        board[7][5] = "whiteBishop";
+        board[7][6] = "whiteKnight";
+        board[7][7] = "whiteRook";
         
     }
 
@@ -205,12 +223,17 @@ public class HelloFX extends Application {
             board[fromRow][fromCol] = "--";
 
             whiteTurn = !whiteTurn;
-            
+            if (whiteTurn) {
+                statusLabel.setText("white to move");
+            } else {
+            statusLabel.setText("black to move");
+            }
+
             // Keep track of king positions
-            if (pieceKey.equals("♔")) {
+            if (pieceKey.equals("whiteKing")) {
                 whiteKingRow = toRow;
                 whiteKingCol = toCol;
-            } else if (pieceKey.equals("♚")) {
+            } else if (pieceKey.equals("blackKing")) {
                 blackKingRow = toRow;
                 blackKingCol = toCol;
             }
@@ -254,21 +277,23 @@ public class HelloFX extends Application {
         if (isFriendlyPiece(board[fromRow][fromCol], board[toRow][toCol])){
             return false;
         }
-        else if (pieceKey.equals("♙") || pieceKey.equals("♟")) {
+        else if (pieceKey.contains("Pawn")) {
             return pawnMove(fromRow, fromCol, toRow, toCol, pieceKey);
         }
-        else if (pieceKey.equals("♘") || pieceKey.equals("♞")) {
+        else if (pieceKey.endsWith("Knight")) {
             return knightMove(fromRow, fromCol, toRow, toCol);
         }
-        else if (pieceKey.equals("♗") || pieceKey.equals("♝")) {
+        else if (pieceKey.endsWith("Bishop")) {
             return bishopMove(fromRow, fromCol, toRow, toCol);
         }
-        else if (pieceKey.equals("♖") || pieceKey.equals("♜")) {
+        else if (pieceKey.contains("Rook")) {
             return rookMove(fromRow, fromCol, toRow, toCol);
         }
-        else if (pieceKey.equals("♕") || pieceKey.equals("♛")) {
-            return rookMove(fromRow, fromCol, toRow, toCol) || bishopMove(fromRow, fromCol, toRow, toCol);
-        } else if (pieceKey.equals("♔") || pieceKey.equals("♚")) {
+        else if (pieceKey.endsWith("Queen")) {
+            return rookMove(fromRow, fromCol, toRow, toCol)
+                || bishopMove(fromRow, fromCol, toRow, toCol);
+        }
+        else if (pieceKey.endsWith("King")) {
             return kingMove(fromRow, fromCol, toRow, toCol);
         }
 
@@ -289,10 +314,10 @@ public class HelloFX extends Application {
         board[toRow][toCol] = movingPiece;
         board[fromRow][fromCol] = "--";
 
-        if (movingPiece.equals("♔")) {
+        if (movingPiece.equals("whiteKing")) {
             whiteKingRow = toRow;
             whiteKingCol = toCol;
-        } else if (movingPiece.equals("♚")) {
+        } else if (movingPiece.equals("blackKing")) {
             blackKingRow = toRow;
             blackKingCol = toCol;
         }
@@ -319,7 +344,7 @@ public class HelloFX extends Application {
 
     public static boolean pawnMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
         int direction;
-        if (pieceKey.equals("♙")) {
+        if (pieceKey.equals("whitePawn")) {
             direction = -1;
 
         } else {
@@ -329,8 +354,8 @@ public class HelloFX extends Application {
         if (board[toRow][toCol].equals("--")) {
             
             // Allow pawns to move 2 square for their first move, checking if there are any pieces in between 
-            if (toCol == fromCol && ((pieceKey.equals("♙") && fromRow == 6) 
-                || (pieceKey.equals("♟") && fromRow == 1)) 
+            if (toCol == fromCol && ((pieceKey.equals("whitePawn") && fromRow == 6) 
+                || (pieceKey.equals("blackPawn") && fromRow == 1)) 
                 && toRow == fromRow + 2 * direction 
                 && board[(toRow+fromRow)/2][toCol].equals("--")) {
                 return true;
@@ -363,10 +388,11 @@ public class HelloFX extends Application {
     }
 
     public static boolean isWhite(String piece) {
-        return "♔♕♖♗♘♙".contains(piece);
+        return piece.startsWith("white");
     }
+
     public static boolean isBlack(String piece) {
-        return "♚♛♜♝♞♟".contains(piece);
+        return piece.startsWith("black");
     }
 
     public static boolean isFriendlyPiece(String source, String destination) {
@@ -434,6 +460,13 @@ public class HelloFX extends Application {
     }
 
     public static String findAttackers(int kingRow, int kingCol) {
+
+        attacker = "";
+        attackerDir = null;
+        attackerRow = -1;
+        attackerCol = -1;
+        additionalAttackers = false;
+
         for (int[] dir : directions) {
 
             int row = kingRow + dir[0];
@@ -452,7 +485,7 @@ public class HelloFX extends Application {
 
                 // Check if the piece can capture the king
                 if (validateMove(row, col, kingRow, kingCol, piece) && !isFriendlyPiece(piece, board[kingRow][kingCol])) {
-                    System.out.println("King is in chekc king is  in  chejck");
+                    //---------
                     
                     if (!attacker.isEmpty()) {
                         additionalAttackers = true;
@@ -461,7 +494,6 @@ public class HelloFX extends Application {
                     attackerRow = row;
                     attackerCol = col;
                     attackerDir = dir;
-
 
                 };
             }
@@ -472,10 +504,17 @@ public class HelloFX extends Application {
     public static boolean repelAttack(int kingRow, int kingCol) {
         int row = kingRow+attackerDir[0];
         int col = kingCol+attackerDir[1];
-        while (row != attackerRow) {
-            row = kingRow+attackerDir[0];
-            col = kingCol+attackerDir[1];
-            return kingInCheck(row, col);
+        while (row != attackerRow+attackerDir[0]) {
+            row += attackerDir[0];
+            col += attackerDir[1];
+            if (kingInCheck(row, col)) {
+                attacker = "";
+                attackerDir = null;
+                attackerRow = -1;
+                attackerCol = -1;
+                additionalAttackers = false;
+                return true;
+            }
         }
         return false;
 
@@ -493,9 +532,17 @@ public class HelloFX extends Application {
             }
         } 
 
-        if (kingInCheck(kingRow, kingCol) || additionalAttackers) {
+        if (kingInCheck(kingRow, kingCol) && !repelAttack(kingRow, kingCol) || additionalAttackers) {
+            if (whiteTurn) {
+                statusLabel.setText("White Wins!");
+            } else {
+                statusLabel.setText("Black Wins!");
+            }
+
             return "Checkmate";
         }
+
+        //statusLabel.setText("Stalemate!");
         return "Stalemate";
     
     }   
