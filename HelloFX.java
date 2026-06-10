@@ -217,7 +217,7 @@ public class HelloFX extends Application {
                 StackPane tile = new StackPane();
                 Rectangle colour = new Rectangle(70, 70);
 
-                // checkerboard colors
+                // chess board colors
                 if ((row + col) % 2 == 0) {
                     colour.setFill(Color.BEIGE);
                 } else {
@@ -557,6 +557,10 @@ public class HelloFX extends Application {
         tile.getChildren().remove(tile.getChildren().size() - 1);
 
         tile.getChildren().add(piece);
+
+        // update remaining pieces
+        remainingPieces.remove(color + "Pawn");
+        remainingPieces.add(newPiece);
     }
 
     // updates UI after a move
@@ -1007,8 +1011,8 @@ public class HelloFX extends Application {
         }
 
         if (nonKings.size() == 1 &&
-                (nonKings.get(0).contains("Bishop")
-                        || nonKings.get(0).contains("Knight"))) {
+            (nonKings.get(0).contains("Bishop")
+            || nonKings.get(0).contains("Knight"))) {
             return true;
         }
 
