@@ -13,6 +13,8 @@ import java.util.HashMap;
 import javafx.scene.input.MouseButton;
 import java.util.ArrayList;
 import javafx.scene.layout.VBox;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 
 public class HelloFX extends Application {
 
@@ -55,17 +57,29 @@ public class HelloFX extends Application {
         {-2, 1},
         {-2, -1},
         {1, 2},
-        {1, -1},
+        {1, -2},
         {-1, 2},
         {-1, -2}
     };
 
 
     static String attacker = "";
-    static int[] attackerDir = {1,1};
+    static int[] attackerDir = {0,0};
     static int attackerRow = -1;
     static int attackerCol = -1;
     static boolean additionalAttackers = false;
+
+    static HashMap<String, Boolean> hasMoved = new HashMap<>();
+
+    static {
+        hasMoved.put("whiteKing", false);
+        hasMoved.put("whiteRookA", false);
+        hasMoved.put("whiteRookH", false);
+
+        hasMoved.put("blackKing", false);
+        hasMoved.put("blackRookA", false);
+        hasMoved.put("blackRookH", false);
+    }
 
     @Override
     public void start(Stage stage) {
@@ -243,13 +257,21 @@ public class HelloFX extends Application {
     public static void movePiece(int fromRow, int fromCol, int toRow, int toCol) {
         String pieceKey = board[fromRow][fromCol];
 
-        if (validateMove(fromRow, fromCol, toRow, toCol, pieceKey) 
+        if (validateMove(fromRow, fromCol, toRow, toCol, pieceKey, false) 
             && !putsOwnKingInCheck(fromRow, fromCol, toRow, toCol)) {
 
             // Move the piece in the ascii board (logic)
             updateSquares(fromRow, fromCol, toRow, toCol, pieceKey);
             board[toRow][toCol] = board[fromRow][fromCol];
             board[fromRow][fromCol] = "--";
+
+            if (pieceKey.equals("whitePawn") && toRow == 0) {
+                handlePromotion(toRow, toCol, true);
+            }
+
+            if (pieceKey.equals("blackPawn") && toRow == 7) {
+                handlePromotion(toRow, toCol, false);
+            }
 
             whiteTurn = !whiteTurn;
             if (whiteTurn) {
@@ -260,11 +282,56 @@ public class HelloFX extends Application {
 
             // Keep track of king positions
             if (pieceKey.equals("whiteKing")) {
+                hasMoved.put("whiteKing", true);
                 whiteKingRow = toRow;
                 whiteKingCol = toCol;
             } else if (pieceKey.equals("blackKing")) {
+                hasMoved.put("blackKing", true);
                 blackKingRow = toRow;
                 blackKingCol = toCol;
+            }
+
+            if (pieceKey.equals("whiteRook") && fromCol == 0) hasMoved.put("whiteRookA", true);
+            if (pieceKey.equals("whiteRook") && fromCol == 7) hasMoved.put("whiteRookH", true);
+            if (pieceKey.equals("blackRook") && fromCol == 0) hasMoved.put("blackRookA", true);
+            if (pieceKey.equals("blackRook") && fromCol == 7) hasMoved.put("blackRookH", true);
+
+            // WHITE CASTLING
+            if (pieceKey.equals("whiteKing") && fromRow == 7 && fromCol == 4) {
+
+                // king side
+                if (toRow == 7 && toCol == 6) {
+                    System.out.println("CASTLE!");
+                    board[7][5] = "whiteRook";
+                    board[7][7] = "--";
+                    castleRookMove(7, 7, 7, 5, "whiteRook");
+                }
+
+                // queen side
+                if (toRow == 7 && toCol == 2) {
+                    System.out.println("CASTLE!");
+                    board[7][3] = "whiteRook";
+                    board[7][0] = "--";
+                    castleRookMove(7, 0, 7, 3, "whiteRook");
+                }
+            }
+
+            // BLACK CASTLING
+            if (pieceKey.equals("blackKing") && fromRow == 0 && fromCol == 4) {
+
+                // king side
+                if (toRow == 0 && toCol == 6) {
+                    board[0][5] = "blackRook";
+                    board[0][7] = "--";
+                    castleRookMove(0, 7, 0, 5, "blackRook");
+                }
+
+                // queen side
+                if (toRow == 0 && toCol == 2) {
+                    board[0][3] = "blackRook";
+                    board[0][0] = "--";
+                    castleRookMove(0, 0, 0, 3, "blackRook");
+                }
             }
 
             if (whiteTurn) {
@@ -272,7 +339,52 @@ public class HelloFX extends Application {
             } else {
                 kingInCheckmateOrStalemate(blackKingRow, blackKingCol);
             }
+
+            updateCheckIndicators();
         }
+    }
+
+    public static void handlePromotion(int row, int col, boolean white) {
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Pawn Promotion");
+        alert.setHeaderText("Choose a piece to promote to:");
+
+        ButtonType queen = new ButtonType("Queen");
+        ButtonType rook = new ButtonType("Rook");
+        ButtonType bishop = new ButtonType("Bishop");
+        ButtonType knight = new ButtonType("Knight");
+
+        alert.getButtonTypes().setAll(queen, rook, bishop, knight);
+
+        ButtonType choice = alert.showAndWait().orElse(queen);
+
+        String color = "black";
+        if (white) {
+            color = "white";
+        }
+        String newPiece = color;
+
+        if (choice == queen) {newPiece += "Queen";}
+        else if (choice == rook) {newPiece += "Rook";}
+        else if (choice == bishop) {newPiece += "Bishop";}
+        else if (choice == knight) {newPiece += "Knight";}
+
+        // update logic board
+        board[row][col] = newPiece;
+
+        // update UI
+        ImageView piece = new ImageView(pieces.get(newPiece));
+        piece.setFitWidth(60);
+        piece.setFitHeight(60);
+        piece.setPreserveRatio(true);
+
+        StackPane tile = tiles[row][col];
+
+        // remove old piece image
+        tile.getChildren().remove(tile.getChildren().size() - 1);
+
+        tile.getChildren().add(piece);
     }
 
     public static void updateSquares(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
@@ -302,7 +414,26 @@ public class HelloFX extends Application {
         endTile.getChildren().add(piece);
     };
 
-    public static boolean validateMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
+    public static void castleRookMove(int rookFromRow, int rookFromCol, int rookToRow, int rookToCol, String rookKey) {
+    
+        StackPane startTile = tiles[rookFromRow][rookFromCol];
+        StackPane endTile = tiles[rookToRow][rookToCol];
+
+        // update board already handled outside
+
+        ImageView rook = new ImageView(pieces.get(rookKey));
+        rook.setFitWidth(60);
+        rook.setFitHeight(60);
+        rook.setPreserveRatio(true);
+
+        // remove rook image from original square
+        startTile.getChildren().remove(startTile.getChildren().size() - 1);
+
+        // place rook on new square
+        endTile.getChildren().add(rook);
+    }
+
+    public static boolean validateMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey, boolean checkingPossibleMove) {
         if (isFriendlyPiece(board[fromRow][fromCol], board[toRow][toCol])){
             return false;
         }
@@ -323,7 +454,7 @@ public class HelloFX extends Application {
                 || bishopMove(fromRow, fromCol, toRow, toCol);
         }
         else if (pieceKey.endsWith("King")) {
-            return kingMove(fromRow, fromCol, toRow, toCol);
+            return kingMove(fromRow, fromCol, toRow, toCol, checkingPossibleMove);
         }
 
         return false;
@@ -388,7 +519,7 @@ public class HelloFX extends Application {
                 && toRow == fromRow + 2 * direction 
                 && board[(toRow+fromRow)/2][toCol].equals("--")) {
                 return true;
-            } 
+            }
 
             return fromCol == toCol && toRow == fromRow+direction;
         }
@@ -410,10 +541,65 @@ public class HelloFX extends Application {
         return (toCol==fromCol && noPiecesHorizontal(fromCol, toRow, fromRow) || toRow==fromRow && noPiecesVertical(fromRow, toCol, fromCol));
     }
     
-    public static boolean kingMove(int fromRow, int fromCol, int toRow, int toCol) {
-        int colDiff = Math.abs(toCol-fromCol);
-        int rowDiff = Math.abs(toRow-fromRow);
-        return colDiff <= 1 && rowDiff <=1;
+    public static boolean kingMove(int fromRow, int fromCol, int toRow, int toCol, boolean checkingPossibleMove) {
+        int colDiff = toCol - fromCol;
+        int rowDiff = Math.abs(toRow - fromRow);
+
+        // normal king move
+        if (Math.abs(colDiff) <= 1 && rowDiff <= 1) {
+            return true;
+        }
+
+        if (checkingPossibleMove) {
+            return false;
+        }
+
+        // CASTLING ONLY (same row)
+        if (rowDiff == 0 && Math.abs(colDiff) == 2) {
+
+            // WHITE
+            if (fromRow == 7 && !hasMoved.get("whiteKing")) {
+
+                System.out.println("f1 seen: " + tileIsSeen(7,5,"enemy"));
+                System.out.println("g1 seen: " + tileIsSeen(7,6,"enemy"));
+
+                // king side
+                if (board[7][7].equals("whiteRook") && toCol == 6 && !hasMoved.get("whiteRookH") &&
+                    board[7][5].equals("--") && !tileIsSeen(7, 5, "enemy") &&
+                    board[7][6].equals("--") && !tileIsSeen(7, 6, "enemy")) {
+                    return true;
+                }
+
+                // queen side
+                if (board[7][0].equals("whiteRook") && toCol == 2 && !hasMoved.get("whiteRookA") &&
+                    board[7][1].equals("--") && !tileIsSeen(7, 1, "enemy") &&
+                    board[7][2].equals("--") && !tileIsSeen(7, 2, "enemy") &&
+                    board[7][3].equals("--") && !tileIsSeen(7, 3, "enemy")) {
+                    return true;
+                }
+            }
+
+            // BLACK
+            if (fromRow == 0 && !hasMoved.get("blackKing")) {
+
+                // king side
+                if (board[0][7].equals("blackRook") && toCol == 6 && !hasMoved.get("blackRookH") &&
+                    board[0][5].equals("--") && !tileIsSeen(0, 5, "enemy") &&
+                    board[0][6].equals("--") && !tileIsSeen(0, 6, "enemy")) {
+                    return true;
+                }
+
+                // queen side
+                if (board[0][0].equals("blackRook") && toCol == 2 && !hasMoved.get("blackRookA") &&
+                    board[0][1].equals("--") && !tileIsSeen(0, 1, "enemy") &&
+                    board[0][2].equals("--") && !tileIsSeen(0, 2, "enemy") &&
+                    board[0][3].equals("--") && !tileIsSeen(0, 3, "enemy")) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public static boolean isWhite(String piece) {
@@ -483,14 +669,43 @@ public class HelloFX extends Application {
         return true;
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     public static boolean tileIsSeen(int kingRow, int kingCol, String player) {
-        findAttackers(kingRow, kingCol, player);
-        return !attacker.isEmpty();
+        return !tileIsVisible(kingRow, kingCol, player, false).isEmpty();
     }
 
-    public static String findAttackers(int kingRow, int kingCol, String seenBy) {
+    public static boolean findAttacker(int kingRow, int kingCol, String player) {
+        return !tileIsVisible(kingRow, kingCol, player, true).isEmpty();
+    }
+
+    public static String tileIsVisible(int kingRow, int kingCol, String seenBy, boolean findingAttackers) {
 
         System.out.println("Now looking for attackers");
+        String attacker = "";
 
         for (int[] dir : directions) {
 
@@ -510,12 +725,19 @@ public class HelloFX extends Application {
                 String piece = board[row][col];
 
                 // Check if the piece can move to that tile
-                if (validateMove(row, col, kingRow, kingCol, piece) 
+                if (validateMove(row, col, kingRow, kingCol, piece, true) 
                     && (!isFriendlyPiece(piece, board[kingRow][kingCol]) && seenBy.equals("enemy")
                     || isFriendlyPiece(piece, board[kingRow][kingCol]) && seenBy.equals("friend"))) {
+
+                    System.out.println(
+                        "Attacker found: " + piece +
+                        " at (" + row + "," + col + ")" +
+                        " attacking (" + kingRow + "," + kingCol + ")"
+                    );
                     //---------
                     
-                    if (seenBy.equals("enemy")) {
+                    if (findingAttackers) {
+
                         System.out.print("attacker info gained: ");
                         if (!attacker.isEmpty()) {
                             additionalAttackers = true;
@@ -525,21 +747,33 @@ public class HelloFX extends Application {
                         attackerCol = col;
                         attackerDir = dir;
                         System.out.println(board[attackerRow][attackerCol]);
-
-                        if (board[kingRow][kingCol].endsWith("King")) {
-                            Rectangle rect = (Rectangle) tiles[kingRow][kingCol].getChildren().get(0);
-                            rect.setFill(Color.RED);
-                        }
-                    };
-                };
+                    }
+                }
             }
         }
+        
+        for (int[] dir: knightDirections) {
+            int row = kingRow + dir[0];
+            int col = kingCol + dir[1];
 
+            boolean withinBoard = false;
+            String piece = "";
 
-        System.out.println(attacker);
+            if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+                withinBoard = true;
+                piece = board[row][col];
+            }
+
+            if (withinBoard && piece.endsWith("Knight") && validateMove(row, col, kingRow, kingCol, piece, true) 
+                    && (!isFriendlyPiece(piece, board[kingRow][kingCol]) && seenBy.equals("enemy")
+                    || isFriendlyPiece(piece, board[kingRow][kingCol]) && seenBy.equals("friend"))) {
+                    
+                    attacker = piece;
+            }
+
+        }
+
         return attacker;
-
-
     }
     
     public static boolean repelAttack(int kingRow, int kingCol) {
@@ -549,9 +783,10 @@ public class HelloFX extends Application {
         int row = kingRow+attackerDir[0];
         int col = kingCol+attackerDir[1];
         while (row != attackerRow+attackerDir[0]) {
-            row += attackerDir[0];
-            col += attackerDir[1];
-            if (tileIsSeen(row, col, "friend")) {
+
+            boolean withinBoard = row >= 0 && row < 8 && col >= 0 && col < 8; 
+
+            if (withinBoard && tileIsSeen(row, col, "friend")) {
                 
                 System.out.println("attacker info reset");
                 attacker = "";
@@ -562,6 +797,11 @@ public class HelloFX extends Application {
                 
                 return true;
             }
+            System.out.println("Checking block square: " + row + "," + col);
+            System.out.println("Seen by friend: " + tileIsSeen(row, col, "friend"));
+
+            row += attackerDir[0];
+            col += attackerDir[1];
         }
 
         System.out.println("the attack cannot be repelled, king has to move");
@@ -573,39 +813,44 @@ public class HelloFX extends Application {
 
         System.out.println("This runs");
 
+        boolean hasEscapeMove = false;
+
+        String kingPiece = board[kingRow][kingCol];
+
+        // Try king moves
         for (int[] dir : directions) {
 
             int row = kingRow + dir[0];
             int col = kingCol + dir[1];
-            boolean withinBoard = row >= 0 && row < 8 && col >= 0 && col < 8;
 
-            if (withinBoard && validateMove(kingRow, kingCol, row, col, board[kingRow][kingCol]) 
-                && !putsOwnKingInCheck(kingRow, kingCol, row, col)) {
-                return "False";
+            if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+
+                if (validateMove(kingRow, kingCol, row, col, kingPiece, true)
+                    && !putsOwnKingInCheck(kingRow, kingCol, row, col)) {
+
+                    hasEscapeMove = true;
+                }
             }
-        } 
-
-        System.out.println("We are checking for checkmate here");
-
-        if (additionalAttackers || tileIsSeen(kingRow, kingCol, "enemy") && !repelAttack(kingRow, kingCol)) {
-            
-            System.out.println("Someone won");
-            
-            if (whiteTurn) {
-                System.out.println("White Wins!");
-                statusLabel.setText("White Wins!");
-            } else {
-                System.out.println("Black Wins!");
-                statusLabel.setText("Black Wins!");
-            }
-
-            return "Checkmate";
         }
 
-        //statusLabel.setText("Stalemate!");
-        return "Stalemate";
-    
-    }   
+        if (hasEscapeMove) {
+            return "Ongoing";
+        }
+
+        boolean inCheck = tileIsSeen(kingRow, kingCol, "enemy");
+
+        if (inCheck) {
+            if (whiteTurn) {
+                statusLabel.setText("Black Wins!");
+            } else {
+                statusLabel.setText("White Wins!");
+            }
+            return "Checkmate";
+        } else {
+            statusLabel.setText("Stalemate!");
+            return "Stalemate";
+        }
+    }  
 
     public static boolean insufficientMaterial() {
         return false;
