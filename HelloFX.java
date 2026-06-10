@@ -13,30 +13,32 @@ import java.util.HashMap;
 import javafx.scene.input.MouseButton;
 import java.util.ArrayList;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.geometry.Pos;
 
 public class HelloFX extends Application {
 
     static String[][] board = new String[8][8]; // Acsii board to keep track of game logic
-    static StackPane[][] tiles = new StackPane[8][8]; // Easy access to specific tiles
+    static StackPane[][] tiles; // Easy access to specific tiles
     static HashMap<String, Image> pieces = new HashMap<>();
     static GridPane grid = new GridPane(); // UI board
     static Label statusLabel;
 
     // Position of selected piece
-    static int selectedRow = -1;
-    static int selectedCol = -1;
+    static int selectedRow;
+    static int selectedCol;
 
-    static boolean whiteTurn = true;
+    static boolean whiteTurn;
 
     // Keep track of kings positions for checking logic
-    static int whiteKingRow = 7;
-    static int blackKingRow = 0;
-    static int whiteKingCol = 4;
-    static int blackKingCol = 4;
-    static boolean whiteInCheck = false;
-    static boolean blackInCheck = false;
+    static int whiteKingRow;
+    static int blackKingRow;
+    static int whiteKingCol;
+    static int blackKingCol;
+    static boolean whiteInCheck;
+    static boolean blackInCheck;
 
     // Directions of the king to check for checks
     static int[][] directions = {
@@ -74,14 +76,17 @@ public class HelloFX extends Application {
         hasMoved.put("blackRookH", false);
     }
 
+    // Keep track of oppritunities for en passent
+    static int enPassantRow = -1;
+    static int enPassantCol = -1;
+    static boolean lastMoveWasDoublePawn = false;
+
     @Override
     public void start(Stage stage) {
 
         stage.setTitle("2-Player Chess");
 
-        boardSetup();
-
-        // White pieces
+        // Load pieces
         pieces.put("whiteKing", new Image(getClass().getResourceAsStream("/icons/white-king.png")));
         pieces.put("whiteQueen", new Image(getClass().getResourceAsStream("/icons/white-queen.png")));
         pieces.put("whiteRook", new Image(getClass().getResourceAsStream("/icons/white-rook.png")));
@@ -89,13 +94,102 @@ public class HelloFX extends Application {
         pieces.put("whiteKnight", new Image(getClass().getResourceAsStream("/icons/white-knight.png")));
         pieces.put("whitePawn", new Image(getClass().getResourceAsStream("/icons/white-pawn.png")));
 
-        // Black pieces
         pieces.put("blackKing", new Image(getClass().getResourceAsStream("/icons/black-king.png")));
         pieces.put("blackQueen", new Image(getClass().getResourceAsStream("/icons/black-queen.png")));
         pieces.put("blackRook", new Image(getClass().getResourceAsStream("/icons/black-rook.png")));
         pieces.put("blackBishop", new Image(getClass().getResourceAsStream("/icons/black-bishop.png")));
         pieces.put("blackKnight", new Image(getClass().getResourceAsStream("/icons/black-knight.png")));
         pieces.put("blackPawn", new Image(getClass().getResourceAsStream("/icons/black-pawn.png")));
+
+        statusLabel = new Label("White to move");
+
+        // MENU SCENE
+        Label title = new Label("2-Player Chess");
+        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+
+        Button playButton = new Button("Play");
+        Button quitButton = new Button("Quit");
+
+        VBox menu = new VBox(20, title, playButton, quitButton);
+        menu.setStyle("-fx-alignment: center; -fx-padding: 40;");
+
+        Scene menuScene = new Scene(menu, 400, 300);
+
+        // GAME SETUP (but not shown yet)
+        setUpGame(); // builds grid
+
+        Button surrenderButton = new Button("Surrender");
+        Button drawButton = new Button("Offer Draw");
+
+        surrenderButton.setOnAction(e -> {
+            String winner = "WHITE WINS BY SURRENDER!";
+            if (whiteTurn) {
+                winner = "BLACK WINS BY SURRENDER!";
+            }
+
+            playAgain(winner, "Do you want to play again?");
+        });
+
+        drawButton.setOnAction(e -> {
+
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Draw Offer");
+            confirm.setHeaderText("Opponent: Do you accept the draw?");
+
+            confirm.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.OK) {
+                    playAgain("DRAW!", "Do you want to play again?");
+                }
+            });
+        });
+
+        HBox controls = new HBox(10, surrenderButton, drawButton);
+        controls.setAlignment(Pos.CENTER);
+
+        VBox rightPanel = new VBox(15, statusLabel, controls);
+        rightPanel.setAlignment(Pos.TOP_CENTER);
+
+        VBox boardContainer = new VBox(grid);
+        boardContainer.setAlignment(Pos.CENTER);
+
+        HBox gameLayout = new HBox(20, boardContainer, rightPanel);
+        gameLayout.setAlignment(Pos.CENTER);
+
+        Scene gameScene = new Scene(gameLayout);
+
+        // BUTTON ACTIONS
+        playButton.setOnAction(e -> {
+            setUpGame();              // reset board
+            stage.setScene(gameScene);
+        });
+
+        quitButton.setOnAction(e -> stage.close());
+
+        // start on menu
+        stage.setScene(menuScene);
+        stage.show();
+    }
+
+    public static void setUpGame() {
+
+        tiles = new StackPane[8][8];
+
+        // Position of selected piece
+        selectedRow = -1;
+        selectedCol = -1;
+
+        whiteTurn = true;
+
+        // Keep track of kings positions for checking logic
+        whiteKingRow = 7;
+        blackKingRow = 0;
+        whiteKingCol = 4;
+        blackKingCol = 4;
+        whiteInCheck = false;
+        blackInCheck = false;
+
+        boardSetup();
+        grid.getChildren().clear();
 
         // Setup UI board
         for (int row = 0; row < 8; row++) {
@@ -166,14 +260,7 @@ public class HelloFX extends Application {
                 grid.add(tile, col, row);
             }
         }
-        statusLabel = new Label("White to move");
-
-        VBox root = new VBox();
-        root.getChildren().addAll(statusLabel, grid);
-
-        Scene scene = new Scene(root);
-        stage.setScene(scene);
-        stage.show();
+        statusLabel.setText("White to move");
     }
 
     public static void main(String[] args) {
@@ -333,13 +420,55 @@ public class HelloFX extends Application {
                 }
             }
 
-            if (whiteTurn) {
-                statusLabel.setText(kingInCheckmateOrStalemate(whiteKingRow, whiteKingCol, false));
-            } else {
-                statusLabel.setText(kingInCheckmateOrStalemate(blackKingRow, blackKingCol, true));
+            // En Passant logic
+            if (pieceKey.equals("whitePawn")
+            && toRow == enPassantRow
+            && toCol == enPassantCol
+            && fromRow == 3) {
+                System.out.println("Attempt enPassent");
+
+                board[3][toCol] = "--";
+                tiles[3][toCol].getChildren().remove(tiles[3][toCol].getChildren().size() - 1);
+            }
+
+            if (pieceKey.equals("blackPawn")
+                    && toRow == enPassantRow
+                    && toCol == enPassantCol
+                    && fromRow == 4) {
+                
+                System.out.println("Attempt enPassent");
+                board[4][toCol] = "--";
+                tiles[4][toCol].getChildren().remove(tiles[4][toCol].getChildren().size() - 1);
+            }
+
+            if (kingInCheckmateOrStalemate(whiteKingRow, whiteKingCol, false).equals("CHECKMATE")) {
+                playAgain("BLACK WINS BY CHECKMATE!", "Do you want to play again?");
+
+            } else if(kingInCheckmateOrStalemate(blackKingRow, blackKingCol, true).equals("CHECKMATE")){
+                playAgain("WHITE WINS BY CHECKMATE!", "Do you want to play again?");
+            } else if (kingInCheckmateOrStalemate(blackKingRow, blackKingCol, true).equals("STALEMATE")
+                       || kingInCheckmateOrStalemate(whiteKingRow, whiteKingCol, false).equals("STALEMATE")) {
+                playAgain("STALEMATE!", "Do you want to play again?");
             }
 
             updateCheckIndicators();
+        }
+
+        lastMoveWasDoublePawn = false;
+        enPassantRow = -1;
+        enPassantCol = -1;
+    }
+
+    public static void playAgain(String title, String header) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+
+        ButtonType playAgain = new ButtonType("Play Again?");
+        alert.getButtonTypes().setAll(playAgain);
+        ButtonType choice = alert.showAndWait().orElse(playAgain);
+        if (choice == playAgain) {
+            setUpGame();
         }
     }
 
@@ -502,29 +631,50 @@ public class HelloFX extends Application {
     }
 
     public static boolean pawnMove(int fromRow, int fromCol, int toRow, int toCol, String pieceKey) {
+
         int direction;
         if (pieceKey.equals("whitePawn")) {
             direction = -1;
-
         } else {
             direction = 1;
         }
 
+        // normal forward move
         if (board[toRow][toCol].equals("--")) {
 
-            // Allow pawns to move 2 square for their first move, checking if there are any
-            // pieces in between
-            if (toCol == fromCol && ((pieceKey.equals("whitePawn") && fromRow == 6)
+            if (toCol == fromCol
+                    && ((pieceKey.equals("whitePawn") && fromRow == 6)
                     || (pieceKey.equals("blackPawn") && fromRow == 1))
                     && toRow == fromRow + 2 * direction
                     && board[(toRow + fromRow) / 2][toCol].equals("--")) {
+
+                enPassantCol = toCol;
+                enPassantRow = toRow + direction;
+                lastMoveWasDoublePawn = true;
                 return true;
             }
 
             return fromCol == toCol && toRow == fromRow + direction;
         }
 
-        return Math.abs(fromCol - toCol) == 1 && toRow == fromRow + direction; // Diagonal capture
+        // EN PASSANT
+        if (Math.abs(fromCol - toCol) == 1
+                && toRow == fromRow + direction
+                && board[toRow][toCol].equals("--")) {
+
+            System.out.println("About to check it lands next to an enpassent ROW/COL");
+
+            if (toRow == enPassantRow && toCol == enPassantCol) {
+                return true;
+            }
+        }
+
+        // normal diagonal capture
+        if (Math.abs(fromCol - toCol) == 1 && toRow == fromRow + direction) {
+            return true;
+        }
+
+        return false;
     }
 
     public static boolean knightMove(int fromRow, int fromCol, int toRow, int toCol) {
