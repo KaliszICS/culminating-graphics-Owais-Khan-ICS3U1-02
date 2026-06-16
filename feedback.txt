@@ -1,0 +1,8 @@
+K(30%): 100
+I(30%): 100
+C(10%): 100
+A(30%): 100
+100
+
+Missing main method.
+Otherwise fantastic work.
